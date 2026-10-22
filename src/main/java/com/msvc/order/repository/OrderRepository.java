@@ -1,4 +1,4 @@
-package com.msvc.order.repositories;
+package com.msvc.order.repository;
 
 import com.msvc.order.entity.Order;
 import com.msvc.order.enums.OrderStatus;

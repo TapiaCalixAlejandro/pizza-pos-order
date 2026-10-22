@@ -1,4 +1,4 @@
-package com.msvc.order.repositories;
+package com.msvc.order.repository;
 
 import com.msvc.order.entity.OrderDetail;
 import org.springframework.data.jpa.repository.JpaRepository;
