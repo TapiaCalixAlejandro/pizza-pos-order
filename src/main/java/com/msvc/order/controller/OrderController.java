@@ -2,7 +2,9 @@ package com.msvc.order.controller;
 
 import com.msvc.order.dto.order.request.OrderRequest;
 import com.msvc.order.dto.order.response.OrderResponse;
+import com.msvc.order.enums.OrderStatus;
 import com.msvc.order.service.OrderService;
+import com.msvc.order.shared.constants.Messages;
 import com.msvc.order.shared.response.ApiResponse;
 import com.msvc.order.shared.response.ResponseFactory;
 import io.swagger.v3.oas.annotations.Operation;
@@ -68,7 +70,7 @@ public class OrderController {
                 .status(HttpStatus.CREATED)
                 .body(
                         responseFactory.success(
-                                "Order Create",
+                                Messages.ORDER_CREATED,
                                 response
                         )
                 );
@@ -99,7 +101,7 @@ public class OrderController {
         return ResponseEntity
                 .ok(
                         responseFactory.success(
-                                "Order encontrada bien",
+                                Messages.ORDER_FOUND,
                                 response
                         )
                 );
@@ -124,7 +126,22 @@ public class OrderController {
         return ResponseEntity
                 .ok(
                         responseFactory.success(
-                                "Orders retrieved.",
+                                Messages.ORDERS_RETRIEVED,
+                                responses
+                        )
+                );
+    }
+
+    @GetMapping("/status/{orderStatus}")
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> findAllByOrderStatus(
+            @PathVariable OrderStatus orderStatus
+    ) {
+        List<OrderResponse> responses = orderService.getByStatus(orderStatus);
+
+        return ResponseEntity
+                .ok(
+                        responseFactory.success(
+                                Messages.ORDERS_RETRIEVED,
                                 responses
                         )
                 );

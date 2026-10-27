@@ -13,6 +13,7 @@ import com.msvc.order.mapper.OrderDetailIngredientMapper;
 import com.msvc.order.mapper.OrderDetailMapper;
 import com.msvc.order.mapper.OrderMapper;
 import com.msvc.order.repository.OrderRepository;
+import com.msvc.order.shared.constants.Messages;
 import com.msvc.order.shared.exception.BusinessException;
 import com.msvc.order.shared.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
@@ -91,7 +92,7 @@ public class OrderServiceImpl implements OrderService {
 
         return orderRepository.findByIdAndDeletedAtIsNull(id)
                 .map(orderMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found."));
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.ORDER_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
@@ -103,9 +104,12 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toResponseList(responses);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public List<OrderResponse> getByStatus(OrderStatus status) {
-        return List.of();
+        return orderMapper.toResponseList(
+                orderRepository.findByStatusAndDeletedAtIsNull(status)
+        );
     }
 
     @Override
@@ -129,7 +133,7 @@ public class OrderServiceImpl implements OrderService {
      */
     private void processOrderDetails(Order order, OrderRequest request) {
         if (request.getOrderDetails() == null || request.getOrderDetails().isEmpty()) {
-            throw new BusinessException("La orden debe tener al menos un producto.");
+            throw new BusinessException(Messages.ORDER_MUST_HAVE_DETAILS);
         }
 
         for (OrderDetailRequest detailRequest : request.getOrderDetails()) {
@@ -138,11 +142,11 @@ public class OrderServiceImpl implements OrderService {
 
             // Validaciones basicas
             if (detail.getUnitPrice() == null || detail.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new BusinessException("El precio unitario debe ser mayor a cero.");
+                throw new BusinessException(Messages.UNIT_PRICE_MUST_BE_POSITIVE);
             }
 
             if (detail.getQuantity() == null || detail.getQuantity() <= 0) {
-                throw new BusinessException("La cantidad debe ser mayor a cero.");
+                throw new BusinessException(Messages.QUANTITY_MUST_BE_POSITIVE);
             }
 
             // Descuento de linea
@@ -151,12 +155,12 @@ public class OrderServiceImpl implements OrderService {
                     : BigDecimal.ZERO;
 
             if (detailDiscount.compareTo(BigDecimal.ZERO) < 0) {
-                throw new BusinessException("El descuento del producto no puede ser negativo.");
+                throw new BusinessException(Messages.DETAIL_DISCOUNT_CANNOT_BE_NEGATIVE);
             }
 
             BigDecimal grossLineTotal = detail.getUnitPrice().multiply(BigDecimal.valueOf(detail.getQuantity()));
             if (detailDiscount.compareTo(grossLineTotal) > 0) {
-                throw new BusinessException("El descuento del producto no puede ser mayor a su subtotal bruto.");
+                throw new BusinessException(Messages.DETAIL_DISCOUNT_EXCEEDS_SUBTOTAL);
             }
 
             // Guardar valores en la entidad
@@ -199,13 +203,16 @@ public class OrderServiceImpl implements OrderService {
                 : BigDecimal.ZERO;
 
         if (generalDiscount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new BusinessException("El descuento general no puede ser negativo.");
+            throw new BusinessException(Messages.ORDER_DISCOUNT_CANNOT_BE_NEGATIVE);
         }
 
         // Base gravable = Bruto - Descuentos de linea - Descuento General
-        BigDecimal taxableBase = grossSubtotal.subtract(totalLineDiscounts).subtract(generalDiscount);
+        BigDecimal taxableBase = grossSubtotal
+                .subtract(totalLineDiscounts)
+                .subtract(generalDiscount);
+
         if (taxableBase.compareTo(BigDecimal.ZERO) < 0) {
-            throw new BusinessException("Los descuentos totales no pueden superar el subtotal de la orden.");
+            throw new BusinessException(Messages.TOTAL_DISCOUNTS_EXCEED_SUBTOTAL);
         }
 
         // Calcular IVA sobre base gravable
