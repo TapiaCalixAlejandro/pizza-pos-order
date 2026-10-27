@@ -3,9 +3,9 @@ spring:
     name: msvc-order
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/pizza_order
-    username: postgres
-    password: 12345
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pizza_order}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:12345}
 
   jpa:
     hibernate:

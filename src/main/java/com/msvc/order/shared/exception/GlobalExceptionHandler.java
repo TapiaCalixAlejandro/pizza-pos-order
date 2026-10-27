@@ -2,6 +2,8 @@ package com.msvc.order.shared.exception;
 
 import com.msvc.order.shared.response.ApiErrorResponse;
 import com.msvc.order.shared.response.ResponseFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -13,6 +15,8 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     private final ResponseFactory responseFactory;
 
@@ -43,6 +47,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleException(Exception ex) {
+        LOGGER.error("Unexpected error while processing request.", ex);
 
         return ResponseEntity
                 .internalServerError()
@@ -50,7 +55,7 @@ public class GlobalExceptionHandler {
                         responseFactory
                                 .error(
                                         HttpStatus.INTERNAL_SERVER_ERROR,
-                                "An unexpected error occurred.",
+                                "An unexpected error occurred. Please contact support.",
                                         List.of(ex.getMessage())
                                 )
                 );

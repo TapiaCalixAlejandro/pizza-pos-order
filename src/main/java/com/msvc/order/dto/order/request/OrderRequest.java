@@ -7,19 +7,15 @@ import com.msvc.order.enums.PaymentStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class OrderRequest {
 
     private Long customerId;
-
-    @NotNull(message = "Status is required.")
-    private OrderStatus status;
-
-    @NotNull(message = "Payment status is required.")
-    private PaymentStatus paymentStatus;
 
     @NotNull(message = "Service type is required.")
     private OrderServiceType serviceType;
@@ -29,6 +25,10 @@ public class OrderRequest {
 
     @Size(max = 500, message = "Notes must not exceed 500 characters.")
     private String notes;
+
+    // Si no la envías, el backend asume 0.00
+    @PositiveOrZero(message = "Discount cannot be negative.")
+    private BigDecimal discount;
 
     @NotEmpty(message = "Order details are required.")
     @Valid
@@ -40,22 +40,6 @@ public class OrderRequest {
 
     public void setCustomerId(Long customerId) {
         this.customerId = customerId;
-    }
-
-    public OrderStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(OrderStatus status) {
-        this.status = status;
-    }
-
-    public PaymentStatus getPaymentStatus() {
-        return paymentStatus;
-    }
-
-    public void setPaymentStatus(PaymentStatus paymentStatus) {
-        this.paymentStatus = paymentStatus;
     }
 
     public OrderServiceType getServiceType() {
@@ -80,6 +64,14 @@ public class OrderRequest {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public BigDecimal getDiscount() {
+        return discount;
+    }
+
+    public void setDiscount(BigDecimal discount) {
+        this.discount = discount;
     }
 
     public List<OrderDetailRequest> getOrderDetails() {

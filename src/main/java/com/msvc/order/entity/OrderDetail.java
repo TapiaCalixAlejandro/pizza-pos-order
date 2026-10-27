@@ -57,6 +57,13 @@ public class OrderDetail {
             precision = 10,
             scale = 2
     )
+    private BigDecimal discount;
+
+    @Column(
+            nullable = false,
+            precision = 10,
+            scale = 2
+    )
     private BigDecimal subtotal;
 
     @Column(length = 255)
@@ -88,6 +95,7 @@ public class OrderDetail {
             String productName,
             Integer quantity,
             BigDecimal unitPrice,
+            BigDecimal discount,
             BigDecimal subtotal,
             String notes,
             List<OrderDetailIngredient> detailIngredients,
@@ -101,6 +109,7 @@ public class OrderDetail {
         this.productName = productName;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
+        this.discount = discount;
         this.subtotal = subtotal;
         this.notes = notes;
         this.detailIngredients = detailIngredients;
@@ -157,6 +166,14 @@ public class OrderDetail {
         this.unitPrice = unitPrice;
     }
 
+    public BigDecimal getDiscount() {
+        return discount;
+    }
+
+    public void setDiscount(BigDecimal discount) {
+        this.discount = discount;
+    }
+
     public BigDecimal getSubtotal() {
         return subtotal;
     }
@@ -175,10 +192,6 @@ public class OrderDetail {
 
     public List<OrderDetailIngredient> getDetailIngredients() {
         return detailIngredients;
-    }
-
-    public void setDetailIngredients(List<OrderDetailIngredient> detailIngredients) {
-        this.detailIngredients = detailIngredients;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -203,6 +216,21 @@ public class OrderDetail {
 
     public void setDeletedAt(LocalDateTime deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public void addDetailIngredient(OrderDetailIngredient ingredient) {
+        if (ingredient == null) {
+            throw new IllegalArgumentException("Ingredient cannot be null.");
+        }
+
+        this.detailIngredients.add(ingredient);
+        ingredient.setOrderDetail(this);
+    }
+
+    public void removeDetailIngredient(OrderDetailIngredient ingredient) {
+        if (this.detailIngredients.remove(ingredient)) {
+            ingredient.setOrderDetail(null);
+        }
     }
 
     @PrePersist

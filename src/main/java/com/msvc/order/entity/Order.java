@@ -21,6 +21,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Convencion de cálculo
+ * - subtotal: Suma bruta de (precio * cantidad) de todos los detalles.
+ * - tax: IVA calculado sobre (subtotal - descuentos_linea - descuento_general).
+ * - discount: SOLO el descuento general a nivel orden. los descuentos de linea viven en OrderDetail.
+ * - total: (subtotal - descuentos_linea - descuento_general) + tax.
+ */
 @Entity
 @Table(name = "orders")
 public class Order {
@@ -29,8 +36,18 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(
+            name = "order_number",
+            nullable = false,
+            unique = true
+    )
+    private Long orderNumber;
+
     @Column(name = "customer_id")
     private Long customerId;
+
+    @Column(name = "customer_name", length = 150)
+    private String customerName;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -44,13 +61,6 @@ public class Order {
     )
     private PaymentStatus paymentStatus;
 
-    @Column(
-            name = "order_number",
-            nullable = false,
-            unique = true
-    )
-    private Long orderNumber;
-
     @Enumerated(EnumType.STRING)
     @Column(
             name = "service_type",
@@ -58,9 +68,6 @@ public class Order {
             length = 30
     )
     private OrderServiceType serviceType;
-
-    @Column(name = "customer_name", length = 150)
-    private String customerName;
 
     @Column(length = 500)
     private String notes;
@@ -110,6 +117,18 @@ public class Order {
     private LocalDateTime deletedAt;
 
     public Order() {
+    }
+
+    public Order(
+            Long customerId,
+            String customerName,
+            OrderServiceType serviceType,
+            String notes
+    ) {
+        this.customerId = customerId;
+        this.customerName = customerName;
+        this.serviceType = serviceType;
+        this.notes = notes;
     }
 
     public Order(
@@ -248,10 +267,6 @@ public class Order {
         return orderDetails;
     }
 
-    public void setOrderDetails(List<OrderDetail> orderDetails) {
-        this.orderDetails = orderDetails;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -274,6 +289,21 @@ public class Order {
 
     public void setDeletedAt(LocalDateTime deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public void addOrderDetail(OrderDetail detail) {
+        if (detail == null) {
+            throw new IllegalArgumentException("Order detail cannot be nul.");
+        }
+
+        this.orderDetails.add(detail);
+        detail.setOrder(this);
+    }
+
+    public void removeOrderDetail(OrderDetail detail) {
+        if (this.orderDetails.remove(detail)) {
+            detail.setOrder(null);
+        }
     }
 
     @PrePersist
