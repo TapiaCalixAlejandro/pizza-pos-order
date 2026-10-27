@@ -17,4 +17,6 @@ public final class Messages {
     public static final String ORDER_NOT_FOUND = "Order not found.";
     public static final String ORDERS_RETRIEVED = "Orders retrieved successfully.";
 
+    public static final String ORDER_STATUS_UPDATE = "Order status updated";
+
 }

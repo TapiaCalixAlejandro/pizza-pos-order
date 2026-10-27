@@ -112,9 +112,41 @@ public class OrderServiceImpl implements OrderService {
         );
     }
 
+    @Transactional
     @Override
-    public OrderResponse updateOrderStatus(Long id, OrderStatus status) {
-        return null;
+    public OrderResponse updateOrderStatus(Long id, OrderStatus newStatus) {
+        LOGGER.info(
+                "Updating order status [id={}, newStatus={}]",
+                id,
+                newStatus
+        );
+
+        // Buscar orden existente
+        Order order = orderRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.ORDER_NOT_FOUND));
+
+        // Validar que la transición tenga sentido
+        if (!order.getStatus().canTransactionTo(newStatus)) {
+            throw new BusinessException(
+                    String.format(
+                            "Cannot change status from %s to %s.",
+                            order.getStatus(),
+                            newStatus
+                    )
+            );
+        }
+
+        // Actualizar y guardar
+        order.setStatus(newStatus);
+        Order updatedOrder = orderRepository.save(order);
+
+        LOGGER.info(
+                "Order status updated successfully [id={}, newStatus={}]",
+                id,
+                newStatus
+        );
+
+        return orderMapper.toResponse(updatedOrder);
     }
 
     @Override

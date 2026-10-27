@@ -1,6 +1,7 @@
 package com.msvc.order.controller;
 
 import com.msvc.order.dto.order.request.OrderRequest;
+import com.msvc.order.dto.order.request.UpdateOrderStatusRequest;
 import com.msvc.order.dto.order.response.OrderResponse;
 import com.msvc.order.enums.OrderStatus;
 import com.msvc.order.service.OrderService;
@@ -14,6 +15,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -143,6 +145,26 @@ public class OrderController {
                         responseFactory.success(
                                 Messages.ORDERS_RETRIEVED,
                                 responses
+                        )
+                );
+    }
+
+    @Operation(
+            summary = "Update order status",
+            description = "Changes the status of an existing order (e.g., PENDING to PREPARING)."
+    )
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<OrderResponse>> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateOrderStatusRequest request
+    ) {
+        OrderResponse response = orderService.updateOrderStatus(id, request.getStatus());
+
+        return ResponseEntity
+                .ok(
+                        responseFactory.success(
+                                Messages.ORDER_STATUS_UPDATE,
+                                response
                         )
                 );
     }
