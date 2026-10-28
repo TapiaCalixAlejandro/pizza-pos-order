@@ -23,6 +23,7 @@ CREATE TABLE order_details(
     product_name VARCHAR(150) NOT NULL,
     quantity INT NOT NULL,
     unit_price NUMERIC(10, 2) NOT NULL,
+    discount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
     subtotal NUMERIC(10, 2) NOT NULL,
     notes VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
