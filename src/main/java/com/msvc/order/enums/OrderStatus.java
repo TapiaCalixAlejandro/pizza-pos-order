@@ -8,7 +8,7 @@ public enum OrderStatus {
     CANCELLED;
 
     // Metodo para validar si un estado puede pasar a otro
-    public boolean canTransactionTo(OrderStatus newStatus) {
+    public boolean canTransitionTo(OrderStatus newStatus) {
         return switch (this) {
             case PENDING -> newStatus == PREPARING || newStatus == CANCELLED;
             case PREPARING -> newStatus == READY || newStatus == CANCELLED;

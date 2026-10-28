@@ -44,8 +44,8 @@ public class OrderController {
     }
 
     @Operation(
-            summary = "Create a order",
-            description = "Creates a pizza configuration for an existing pizza."
+            summary = "Create an order",
+            description = "Creates a new order with its products and calculates the order totals."
     )
     @ApiResponses(
             {
@@ -89,7 +89,7 @@ public class OrderController {
                             description = "Order found successfully."
                     ),
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                            responseCode = " 404",
+                            responseCode = "404",
                             description = "Order not found."
                     )
             }
@@ -134,6 +134,18 @@ public class OrderController {
                 );
     }
 
+    @Operation(
+            summary = "Get all by order status",
+            description = "Returns all active all by orders status."
+    )
+    @ApiResponses(
+            {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Orders retrieved successfully."
+                    )
+            }
+    )
     @GetMapping("/status/{orderStatus}")
     public ResponseEntity<ApiResponse<List<OrderResponse>>> findAllByOrderStatus(
             @PathVariable OrderStatus orderStatus
@@ -153,6 +165,22 @@ public class OrderController {
             summary = "Update order status",
             description = "Changes the status of an existing order (e.g., PENDING to PREPARING)."
     )
+    @ApiResponses(
+            {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "Order state updated successfully."
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "400",
+                            description = "Validation error."
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "404",
+                            description = "Order not found."
+                    )
+            }
+    )
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<OrderResponse>> updateStatus(
             @PathVariable Long id,
@@ -165,6 +193,25 @@ public class OrderController {
                         responseFactory.success(
                                 Messages.ORDER_STATUS_UPDATE,
                                 response
+                        )
+                );
+    }
+
+    @Operation(
+            summary = "Cancel an order",
+            description = "Soft-deletes an order and changes its status to CANCELLED."
+    )
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<Void>> cancelOrder(
+            @PathVariable Long id
+    ) {
+        orderService.cancelOrder(id);
+
+        return ResponseEntity
+                .ok(
+                        responseFactory.success(
+                                Messages.ORDER_CANCELLED,
+                                null
                         )
                 );
     }

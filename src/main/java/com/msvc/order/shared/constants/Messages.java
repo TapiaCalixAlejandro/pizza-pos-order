@@ -18,5 +18,14 @@ public final class Messages {
     public static final String ORDERS_RETRIEVED = "Orders retrieved successfully.";
 
     public static final String ORDER_STATUS_UPDATE = "Order status updated";
+    public static final String INVALID_ORDER_TRANSITION = "Cannot change status from %s to %s.";
+    public static final String ORDER_STATUS_PAID = "Cannot cancel a paid order. Please process a refund first.";
+
+    public static final String ORDER_PAYMENT_CANCELLED = "Cannot update payment status for a cancelled order.";
+    public static final String INVALID_PAYMENT_TRANSITION = "Cannot change payment status from %s to %s.";
+
+    public static final String ORDER_DELIVERED = "Cannot cancel an order that has already been delivered.";
+    public static final String ORDER_ALREADY_CANCELLED = "The order is already cancelled.";
+    public static final String ORDER_CANCELLED = "Order cancelled successfully.";
 
 }

@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -31,17 +33,20 @@ public class OrderServiceImpl implements OrderService {
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderServiceImpl.class);
     private static final BigDecimal TAX_RATE = new BigDecimal("0.16");
 
+    private final Clock clock;
     private final OrderMapper orderMapper;
     private final OrderDetailMapper orderDetailMapper;
     private final OrderDetailIngredientMapper detailIngredientMapper;
     private final OrderRepository orderRepository;
 
     public OrderServiceImpl(
+            Clock clock,
             OrderMapper orderMapper,
             OrderDetailMapper orderDetailMapper,
             OrderDetailIngredientMapper detailIngredientMapper,
             OrderRepository orderRepository
     ) {
+        this.clock = clock;
         this.orderMapper = orderMapper;
         this.orderDetailMapper = orderDetailMapper;
         this.detailIngredientMapper = detailIngredientMapper;
@@ -126,10 +131,10 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException(Messages.ORDER_NOT_FOUND));
 
         // Validar que la transición tenga sentido
-        if (!order.getStatus().canTransactionTo(newStatus)) {
+        if (!order.getStatus().canTransitionTo(newStatus)) {
             throw new BusinessException(
                     String.format(
-                            "Cannot change status from %s to %s.",
+                            Messages.INVALID_ORDER_TRANSITION,
                             order.getStatus(),
                             newStatus
                     )
@@ -149,14 +154,79 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toResponse(updatedOrder);
     }
 
+    @Transactional
     @Override
     public OrderResponse updatePaymentStatus(Long id, PaymentStatus newPaymentStatus) {
-        return null;
+        LOGGER.info(
+                "Updating payment status [id={}, newPaymentStatus={}]",
+                id,
+                newPaymentStatus
+        );
+
+        // Buscar la orden
+        Order order = orderRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.ORDER_NOT_FOUND));
+
+        // Si la orden esta cancelada, no se puede cobrar
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BusinessException(Messages.ORDER_PAYMENT_CANCELLED);
+        }
+
+        if (!order.getPaymentStatus().canTransitionTo(newPaymentStatus)) {
+            throw new BusinessException(
+                    String.format(
+                            Messages.INVALID_PAYMENT_TRANSITION,
+                            order.getPaymentStatus(),
+                            newPaymentStatus
+                    )
+            );
+        }
+
+        // Actualizar y guardar
+        order.setPaymentStatus(newPaymentStatus);
+        Order updatedOrder = orderRepository.save(order);
+
+        LOGGER.info(
+                "Payment status updated successfully [id={}, newPaymentStatus={}]",
+                id,
+                newPaymentStatus
+        );
+
+        return orderMapper.toResponse(updatedOrder);
     }
 
+    @Transactional
     @Override
     public void cancelOrder(Long id) {
+        LOGGER.info(
+                "Cancelling order [id={}]",
+                id
+        );
 
+        Order order = orderRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResourceNotFoundException(Messages.ORDER_NOT_FOUND));
+
+        if (order.getStatus() == OrderStatus.DELIVERED) {
+            throw new BusinessException(Messages.ORDER_DELIVERED);
+        }
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new BusinessException(Messages.ORDER_ALREADY_CANCELLED);
+        }
+
+        if (order.getPaymentStatus() == PaymentStatus.PAID) {
+            throw new BusinessException(Messages.ORDER_STATUS_PAID);
+        }
+
+        // Aplicar cambio de estado
+        order.setStatus(OrderStatus.CANCELLED);
+
+        orderRepository.save(order);
+
+        LOGGER.info(
+                "Order cancelled successfully [id={}]",
+                id
+        );
     }
 
     /**
