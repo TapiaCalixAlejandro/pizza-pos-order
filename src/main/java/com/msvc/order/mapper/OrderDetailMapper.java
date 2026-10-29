@@ -17,6 +17,8 @@ public interface OrderDetailMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "order", ignore = true)
+    @Mapping(target = "productName", ignore = true)
+    @Mapping(target = "unitPrice", ignore = true)
     @Mapping(target = "discount", ignore = true)
     @Mapping(target = "subtotal", ignore = true)
     @Mapping(target = "detailIngredients", ignore = true)

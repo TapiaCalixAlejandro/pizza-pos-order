@@ -81,4 +81,16 @@ public class GlobalExceptionHandler {
                 );
     }
 
+    @ExceptionHandler(CatalogServiceException.class)
+    public ResponseEntity<ApiErrorResponse> handleCatalogServiceException(CatalogServiceException exception) {
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(
+                        responseFactory.error(
+                                HttpStatus.SERVICE_UNAVAILABLE,
+                                exception.getMessage()
+                        )
+                );
+    }
+
 }

@@ -24,4 +24,8 @@ springdoc:
     path: /swagger-ui.html
 
 server:
-  port: 8001
+  port: 8002
+
+app:
+  catalog:
+    url: http://localhost:8001
