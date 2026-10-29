@@ -1,5 +1,7 @@
 package com.msvc.order.service;
 
+import com.msvc.order.client.CatalogClient;
+import com.msvc.order.client.dto.ProductResponse;
 import com.msvc.order.dto.order.request.OrderRequest;
 import com.msvc.order.dto.order.response.OrderResponse;
 import com.msvc.order.dto.orderdetail.request.OrderDetailRequest;
@@ -15,7 +17,10 @@ import com.msvc.order.mapper.OrderMapper;
 import com.msvc.order.repository.OrderRepository;
 import com.msvc.order.shared.constants.Messages;
 import com.msvc.order.shared.exception.BusinessException;
+import com.msvc.order.shared.exception.CatalogServiceException;
 import com.msvc.order.shared.exception.ResourceNotFoundException;
+import com.msvc.order.shared.response.ApiResponse;
+import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,8 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Clock;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -33,24 +36,24 @@ public class OrderServiceImpl implements OrderService {
     private static final Logger LOGGER = LoggerFactory.getLogger(OrderServiceImpl.class);
     private static final BigDecimal TAX_RATE = new BigDecimal("0.16");
 
-    private final Clock clock;
     private final OrderMapper orderMapper;
     private final OrderDetailMapper orderDetailMapper;
     private final OrderDetailIngredientMapper detailIngredientMapper;
     private final OrderRepository orderRepository;
+    private final CatalogClient catalogClient;
 
     public OrderServiceImpl(
-            Clock clock,
             OrderMapper orderMapper,
             OrderDetailMapper orderDetailMapper,
             OrderDetailIngredientMapper detailIngredientMapper,
-            OrderRepository orderRepository
+            OrderRepository orderRepository,
+            CatalogClient catalogClient
     ) {
-        this.clock = clock;
         this.orderMapper = orderMapper;
         this.orderDetailMapper = orderDetailMapper;
         this.detailIngredientMapper = detailIngredientMapper;
         this.orderRepository = orderRepository;
+        this.catalogClient = catalogClient;
     }
 
     @Transactional
@@ -104,9 +107,9 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderResponse> findAll() {
         LOGGER.info("Getting all orders");
-        List<Order> responses = orderRepository.findAllByDeletedAtIsNull();
+        List<Order> orders = orderRepository.findAllByDeletedAtIsNull();
 
-        return orderMapper.toResponseList(responses);
+        return orderMapper.toResponseList(orders);
     }
 
     @Transactional(readOnly = true)
@@ -241,6 +244,43 @@ public class OrderServiceImpl implements OrderService {
         for (OrderDetailRequest detailRequest : request.getOrderDetails()) {
             // Mapear el request del detalle a Entidad (las listas se ignoran en el mapper)
             OrderDetail detail = orderDetailMapper.toEntity(detailRequest);
+
+            // Consultar el producto real al catalogo
+            ApiResponse<ProductResponse> response;
+
+            try {
+                response = catalogClient.getProductById(detailRequest.getProductId());
+            } catch (FeignException.NotFound e) {
+                LOGGER.warn(
+                        "Product not found in catalog [id={}]",
+                        detailRequest.getProductId()
+                );
+
+                throw new ResourceNotFoundException("EL producto seleccionado no existe en el catalogo.");
+            } catch (Exception exception) {
+                LOGGER.error(
+                        "Catalog service unavailable [id={}]",
+                        detailRequest.getProductId(),
+                        exception
+                );
+
+                throw new CatalogServiceException("El servicio de catálogo no está disponible en este momento.");
+            }
+
+            if (!response.isSuccess() || response.getData() == null) {
+                throw new BusinessException("Respuesta inválida del catálogo para el producto ID " + detailRequest.getProductId());
+            }
+
+            ProductResponse realProduct = response.getData();
+
+            // Validación de estado
+            if (!"ACTIVE".equalsIgnoreCase(realProduct.getStatus())) {
+                throw new BusinessException("El producto '" + realProduct.getName() + "' no está disponible para la venta.");
+            }
+
+            // Sobrescribir los datos que envio el cliente con los REALES
+            detail.setProductName(realProduct.getName());
+            detail.setUnitPrice(realProduct.getPrice());
 
             // Validaciones basicas
             if (detail.getUnitPrice() == null || detail.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) {
